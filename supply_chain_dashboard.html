@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supply Chain Optimization Managerial Dashboard</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent: #0284c7;
+      --card: #ffffff;
+      --background: #f8fafc;
+      --border: #e2e8f0;
+      --foreground: #0f172a;
+      --muted-foreground: #64748b;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--background);
+      color: var(--foreground);
+      margin: 0;
+      padding: 0;
+    }
+    .metric-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+    }
+    .metric-card:hover {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+      border-color: #cbd5e1;
+    }
+    .tab-btn {
+      padding: 0.65rem 1.1rem;
+      font-weight: 500;
+      font-size: 0.825rem;
+      border-bottom: 2px solid transparent;
+      color: var(--muted-foreground);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+      background-color: #f1f5f9;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.725rem;
+      font-weight: 600;
+      border-width: 1px;
+    }
+    .net-lane {
+      cursor: pointer;
+      transition: stroke-width 0.15s ease, opacity 0.15s ease;
+    }
+    .net-lane:hover {
+      opacity: 1 !important;
+      stroke-width: 6px !important;
+      filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.9));
+    }
+    .net-node {
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    .net-node:hover {
+      transform: scale(1.05);
+      filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
+    }
+    #tooltip-box {
+      position: absolute;
+      display: none;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 0.55rem 0.8rem;
+      border-radius: 0.5rem;
+      font-size: 0.75rem;
+      pointer-events: none;
+      z-index: 100;
+      box-shadow: 0 10px 20px -5px rgba(0,0,0,0.4);
+      max-width: 290px;
+      line-height: 1.4;
+      border: 1px solid #334155;
+    }
+    @media print {
+      .no-print { display: none !important; }
+      body { background-color: #ffffff; }
+    }
+  </style>
+</head>
+<body class="antialiased p-4 md:p-6 pb-12">
+
+  <div id="tooltip-box"></div>
+
+  <div class="max-w-7xl mx-auto space-y-5">
+
+    <div class="bg-slate-900 text-white rounded-xl p-4 md:p-5 shadow-lg border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center space-x-3.5">
+        <div class="w-11 h-11 rounded-lg bg-blue-600 flex items-center justify-center font-black text-xl tracking-wider text-white shadow-inner">
+          SC
+        </div>
+        <div>
+          <div class="flex items-center space-x-2.5">
+            <h1 class="text-lg md:text-xl font-bold tracking-tight text-white">Supply Chain Network Planning & Optimization</h1>
+            <span class="badge bg-emerald-950 text-emerald-400 border-emerald-700">LP OPTIMAL</span>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">
+            Prescriptive Linear Optimization Model &bull; 2 Products &bull; 3 Factories &bull; 5 Warehouses &bull; 9 Regional Markets
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2.5 no-print">
+        <button onclick="setProductFilter('all')" id="btn-filt-all" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white shadow-sm transition">All Products</button>
+        <button onclick="setProductFilter('1')" id="btn-filt-1" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:text-white transition">Product 1</button>
+        <button onclick="setProductFilter('2')" id="btn-filt-2" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:text-white transition">Product 2</button>
+        <button onclick="exportCSV()" class="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center space-x-1 shadow-sm">
+          <span>&darr; Export CSV</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-l-4 border-amber-500 bg-white rounded-r-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div class="flex items-start space-x-3">
+        <div class="p-2 bg-amber-100 text-amber-800 rounded-lg shrink-0 mt-0.5">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-900">Executive Alert: 100% Factory Fleet Bottleneck</span>
+            <span class="badge bg-rose-100 text-rose-700 border-rose-300">Market 4 Shortage: 0.45 Units</span>
+          </div>
+          <p class="text-xs text-slate-700 mt-1 leading-relaxed">
+            All 3 Factories are at <strong>100.0% maximum throughput</strong> on Operation 1 (15.00 total fleet capacity vs 15.45 units demanded).
+            This forces an unmet shortage of 0.45 units in <strong>Market 4 (Product 2)</strong>, incurring a <strong>-$45.00k SLA penalty</strong>.
+            Physical supply chain operations generate <strong>+$27.57k operating profit</strong> (30.6% margin).
+            <span class="font-semibold text-emerald-800 cursor-pointer underline decoration-emerald-500" onclick="switchTab('scenarios')">Insight: Expanding factory capacity by just +10% eliminates all stockouts and drives net earnings to +$28.18k (+$45.61k turnaround).</span>
+          </p>
+        </div>
+      </div>
+      <button onclick="switchTab('scenarios')" class="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-amber-600 hover:bg-amber-700 text-white shrink-0 shadow-sm transition">
+        Open What-If Simulator &rarr;
+      </button>
+    </div>
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div class="metric-card p-3">
+        <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Gross Revenue</span>
+        <div class="text-xl font-bold text-slate-900 mt-0.5">&dollar;90.04k</div>
+        <div class="text-[11px] text-emerald-600 font-medium mt-1">15.00 units shipped</div>
+      </div>
+
+      <div class="metric-card p-3">
+        <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Raw Mat Cost</span>
+        <div class="text-xl font-bold text-slate-900 mt-0.5">&dollar;51.30k</div>
+        <div class="text-[11px] text-slate-500 font-medium mt-1">82.1% of cost base</div>
+      </div>
+
+      <div class="metric-card p-3">
+        <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Mfg Processing</span>
+        <div class="text-xl font-bold text-slate-900 mt-0.5">&dollar;1.95k</div>
+        <div class="text-[11px] text-slate-500 font-medium mt-1">F1, F2, F3 operations</div>
+      </div>
+
+      <div class="metric-card p-3">
+        <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Freight Logistics</span>
+        <div class="text-xl font-bold text-slate-900 mt-0.5">&dollar;9.23k</div>
+        <div class="text-[11px] text-slate-500 font-medium mt-1">Road & Rail modes</div>
+      </div>
+
+      <div class="metric-card p-3 border-emerald-300 bg-emerald-50/40">
+        <span class="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider block">Operating Profit</span>
+        <div class="text-xl font-bold text-emerald-700 mt-0.5">&dollar;27.57k</div>
+        <div class="text-[11px] text-emerald-700 font-medium mt-1">+30.6% Op Margin</div>
+      </div>
+
+      <div class="metric-card p-3 border-rose-300 bg-rose-50/40">
+        <span class="text-[11px] font-semibold text-rose-800 uppercase tracking-wider block">Shortage Penalty</span>
+        <div class="text-xl font-bold text-rose-700 mt-0.5">-&dollar;45.00k</div>
+        <div class="text-[11px] text-rose-600 font-medium mt-1">0.45 units @ &dollar;100</div>
+      </div>
+
+      <div class="metric-card p-3 border-slate-300 bg-slate-50/60">
+        <span class="text-[11px] font-semibold text-slate-700 uppercase tracking-wider block">Net LP Objective</span>
+        <div class="text-xl font-bold text-slate-800 mt-0.5">-&dollar;17.43k</div>
+        <div class="text-[11px] text-slate-500 font-medium mt-1">Post-penalty net</div>
+      </div>
+
+      <div class="metric-card p-3">
+        <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Order Fill Rate</span>
+        <div class="text-xl font-bold text-blue-600 mt-0.5">97.09%</div>
+        <div class="text-[11px] text-slate-500 font-medium mt-1">15.0 / 15.45 units</div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-t-xl border border-b-0 border-slate-200 flex overflow-x-auto no-print">
+      <div onclick="switchTab('overview')" id="tab-btn-overview" class="tab-btn active">📊 Executive P&L Waterfall</div>
+      <div onclick="switchTab('network')" id="tab-btn-network" class="tab-btn">🌐 Multi-Echelon Network Map</div>
+      <div onclick="switchTab('factories')" id="tab-btn-factories" class="tab-btn">🏭 Factory Fleet Utilization</div>
+      <div onclick="switchTab('warehouses')" id="tab-btn-warehouses" class="tab-btn">🏬 Warehouse Hubs & Freight</div>
+      <div onclick="switchTab('markets')" id="tab-btn-markets" class="tab-btn">🎯 Market Demand & Regional P&L</div>
+      <div onclick="switchTab('sensitivity')" id="tab-btn-sensitivity" class="tab-btn">🔍 Shadow Prices & Duals</div>
+      <div onclick="switchTab('scenarios')" id="tab-btn-scenarios" class="tab-btn">🧪 What-If Scenario Studio</div>
+      <div onclick="switchTab('ledger')" id="tab-btn-ledger" class="tab-btn">📋 Master Route Ledger</div>
+    </div>
+
+    <div class="bg-white rounded-b-xl border border-slate-200 p-5 shadow-sm min-h-[500px]">
+
+      <div id="tab-overview" class="space-y-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Supply Chain Financial Bridge (&dollar; Thousands)</h2>
+            <p class="text-xs text-slate-500">Gross commercial revenue down through direct manufacturing, logistics, and shortage impact</p>
+          </div>
+          <div class="flex items-center space-x-2 text-xs">
+            <span class="badge bg-blue-100 text-blue-800 border-blue-200">Demand: 15.45 u</span>
+            <span class="badge bg-emerald-100 text-emerald-800 border-emerald-200">Delivered: 15.00 u</span>
+            <span class="badge bg-rose-100 text-rose-800 border-rose-200">Shortage: 0.45 u</span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="lg:col-span-2 bg-slate-50/60 rounded-xl border border-slate-200 p-4">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Financial Waterfall Bridge</h3>
+              <span class="text-xs text-slate-500">Values in &dollar;k</span>
+            </div>
+
+            <div class="relative w-full h-[270px]">
+              <svg viewBox="0 0 650 250" class="w-full h-full">
+                <line x1="50" y1="30" x2="620" y2="30" stroke="#e2e8f0" stroke-dasharray="3,3" />
+                <line x1="50" y1="80" x2="620" y2="80" stroke="#e2e8f0" stroke-dasharray="3,3" />
+                <line x1="50" y1="130" x2="620" y2="130" stroke="#cbd5e1" stroke-width="1.5" />
+                <line x1="50" y1="180" x2="620" y2="180" stroke="#e2e8f0" stroke-dasharray="3,3" />
+                <line x1="50" y1="230" x2="620" y2="230" stroke="#e2e8f0" stroke-dasharray="3,3" />
+
+                <text x="40" y="34" font-size="10" fill="#64748b" text-anchor="end">+&dollar;100k</text>
+                <text x="40" y="84" font-size="10" fill="#64748b" text-anchor="end">+&dollar;50k</text>
+                <text x="40" y="134" font-size="10" fill="#0f172a" font-weight="bold" text-anchor="end">&dollar;0</text>
+                <text x="40" y="184" font-size="10" fill="#64748b" text-anchor="end">-&dollar;50k</text>
+                <text x="40" y="234" font-size="10" fill="#64748b" text-anchor="end">-&dollar;100k</text>
+
+                <rect x="75" y="40" width="55" height="90" rx="4" fill="#0284c7" />
+                <text x="102" y="32" font-size="11" font-weight="bold" fill="#0284c7" text-anchor="middle">+90.04</text>
+                <text x="102" y="148" font-size="10" font-weight="500" fill="#475569" text-anchor="middle">Revenue</text>
+
+                <line x1="130" y1="40" x2="155" y2="40" stroke="#94a3b8" stroke-dasharray="2,2" />
+
+                <rect x="155" y="40" width="55" height="51.3" rx="4" fill="#ef4444" opacity="0.9" />
+                <text x="182" y="32" font-size="11" font-weight="bold" fill="#dc2626" text-anchor="middle">-51.30</text>
+                <text x="182" y="148" font-size="10" font-weight="500" fill="#475569" text-anchor="middle">Raw Mat</text>
+
+                <line x1="210" y1="91.3" x2="235" y2="91.3" stroke="#94a3b8" stroke-dasharray="2,2" />
+
+                <rect x="235" y="91.3" width="55" height="4" rx="2" fill="#f97316" />
+                <text x="262" y="85" font-size="11" font-weight="bold" fill="#ea580c" text-anchor="middle">-1.95</text>
+                <text x="262" y="148" font-size="10" font-weight="500" fill="#475569" text-anchor="middle">Mfg Prod</text>
+
+                <line x1="290" y1="95.3" x2="315" y2="95.3" stroke="#94a3b8" stroke-dasharray="2,2" />
+
+                <rect x="315" y="95.3" width="55" height="9.2" rx="3" fill="#f59e0b" />
+                <text x="342" y="90" font-size="11" font-weight="bold" fill="#d97706" text-anchor="middle">-9.23</text>
+                <text x="342" y="148" font-size="10" font-weight="500" fill="#475569" text-anchor="middle">Freight</text>
+
+                <line x1="370" y1="104.5" x2="395" y2="104.5" stroke="#94a3b8" stroke-dasharray="2,2" />
+
+                <rect x="395" y="102.4" width="55" height="27.6" rx="4" fill="#10b981" />
+                <text x="422" y="95" font-size="11" font-weight="bold" fill="#059669" text-anchor="middle">+27.57</text>
+                <text x="422" y="148" font-size="10" font-weight="bold" fill="#059669" text-anchor="middle">Op Profit</text>
+
+                <line x1="450" y1="102.4" x2="475" y2="102.4" stroke="#94a3b8" stroke-dasharray="2,2" />
+
+                <rect x="475" y="102.4" width="55" height="45" rx="4" fill="#e11d48" />
+                <text x="502" y="94" font-size="11" font-weight="bold" fill="#be123c" text-anchor="middle">-45.00</text>
+                <text x="502" y="165" font-size="10" font-weight="bold" fill="#be123c" text-anchor="middle">Penalty</text>
+
+                <line x1="530" y1="147.4" x2="555" y2="147.4" stroke="#94a3b8" stroke-dasharray="2,2" />
+
+                <rect x="555" y="130" width="55" height="17.4" rx="4" fill="#475569" />
+                <text x="582" y="165" font-size="11" font-weight="bold" fill="#334155" text-anchor="middle">-17.43</text>
+                <text x="582" y="180" font-size="10" font-weight="bold" fill="#1e293b" text-anchor="middle">Net Obj</text>
+              </svg>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <div class="bg-white rounded-xl border border-slate-200 p-4">
+              <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Cost Breakdown</h3>
+              <div class="space-y-3">
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-slate-600">Raw Material Sourcing</span>
+                    <span class="font-bold text-slate-900">&dollar;51.30k (82.1%)</span>
+                  </div>
+                  <div class="w-full bg-slate-100 rounded-full h-2">
+                    <div class="bg-blue-600 h-2 rounded-full" style="width: 82.1%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-slate-600">Freight Transport (Road/Rail)</span>
+                    <span class="font-bold text-slate-900">&dollar;9.23k (14.8%)</span>
+                  </div>
+                  <div class="w-full bg-slate-100 rounded-full h-2">
+                    <div class="bg-amber-500 h-2 rounded-full" style="width: 14.8%"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-slate-600">Factory Manufacturing Cost</span>
+                    <span class="font-bold text-slate-900">&dollar;1.95k (3.1%)</span>
+                  </div>
+                  <div class="w-full bg-slate-100 rounded-full h-2">
+                    <div class="bg-emerald-500 h-2 rounded-full" style="width: 3.1%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-blue-50/60 rounded-xl border border-blue-200 p-4 text-xs text-blue-900 space-y-2">
+              <span class="font-bold block text-blue-950">Key Executive Takeaways</span>
+              <p>&bull; <strong>Operations are profitable:</strong> Baseline delivery yields <strong>+&dollar;27.57k</strong> operating income before stockout penalty.</p>
+              <p>&bull; <strong>Deficit Concentration:</strong> Exactly 0.45 units of Product 2 in Market 4 are shorted because its price (&dollar;5.0) yields lowest marginal contribution.</p>
+              <p>&bull; <strong>Overtime Opportunity:</strong> Adding 10% capacity turns the -$17.43k objective into <strong>+$28.18k net profit</strong>.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-network" class="hidden space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Multi-Echelon Physical Flow Architecture</h2>
+            <p class="text-xs text-slate-500">Interactive topology: Suppliers &rarr; Factories &rarr; Warehouses &rarr; Regional Markets (Hover any element for metrics)</p>
+          </div>
+          <div class="flex items-center space-x-3 text-xs">
+            <span class="inline-flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 mr-1.5"></span> Product 1</span>
+            <span class="inline-flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-1.5"></span> Product 2</span>
+            <span class="inline-flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span> Direct Bypass</span>
+          </div>
+        </div>
+
+        <div class="w-full bg-slate-950 rounded-xl p-4 overflow-x-auto shadow-inner">
+          <div class="min-w-[850px] h-[500px] relative">
+            <svg id="network-svg" viewBox="0 0 920 500" class="w-full h-full">
+              <text x="60" y="22" fill="#94a3b8" font-size="11" font-weight="bold" text-anchor="middle">SUPPLIERS</text>
+              <text x="240" y="22" fill="#94a3b8" font-size="11" font-weight="bold" text-anchor="middle">FACTORIES</text>
+              <text x="500" y="22" fill="#94a3b8" font-size="11" font-weight="bold" text-anchor="middle">WAREHOUSES</text>
+              <text x="800" y="22" fill="#94a3b8" font-size="11" font-weight="bold" text-anchor="middle">MARKETS</text>
+
+              <line x1="60" y1="35" x2="60" y2="480" stroke="#1e293b" stroke-dasharray="3,3" />
+              <line x1="240" y1="35" x2="240" y2="480" stroke="#1e293b" stroke-dasharray="3,3" />
+              <line x1="500" y1="35" x2="500" y2="480" stroke="#1e293b" stroke-dasharray="3,3" />
+              <line x1="800" y1="35" x2="800" y2="480" stroke="#1e293b" stroke-dasharray="3,3" />
+
+              <path class="net-lane" data-tip="<strong>Direct: F1 &rarr; M2</strong><br>Product 1: 1.30 u<br>Freight: &dollar;0.60/u (&dollar;0.78k)<br>Revenue: &dollar;9.10k" d="M 270 115 C 420 50, 620 50, 770 100" fill="none" stroke="#10b981" stroke-width="3.5" opacity="0.85" stroke-dasharray="4,2" />
+              <path class="net-lane" data-tip="<strong>Direct: F3 &rarr; M7</strong><br>P1: 0.70 u | P2: 1.50 u (Total: 2.20 u)<br>Freight: &dollar;0.50/u (&dollar;1.10k)<br>Top Revenue Market (&dollar;14.08k)" d="M 270 385 C 450 470, 650 470, 770 365" fill="none" stroke="#10b981" stroke-width="4.5" opacity="0.85" stroke-dasharray="4,2" />
+              <path class="net-lane" data-tip="<strong>Direct: F3 &rarr; M8</strong><br>P1: 0.45 u | P2: 1.50 u (Total: 1.95 u)<br>Freight: &dollar;0.60/u (&dollar;1.17k)<br>Revenue: &dollar;10.74k" d="M 270 385 C 450 490, 680 490, 770 420" fill="none" stroke="#10b981" stroke-width="4.0" opacity="0.85" stroke-dasharray="4,2" />
+
+              <line class="net-lane" data-tip="<strong>Inbound: F1 &rarr; W2 (Mode 2 Rail)</strong><br>P1: 1.00 u | P2: 2.70 u (Total: 3.70 u)<br>Freight: &dollar;0.50/u (Bulk Discount)<br>Total Freight: &dollar;1.85k" x1="270" y1="115" x2="470" y2="165" stroke="#f59e0b" stroke-width="5" opacity="0.85" />
+              <line class="net-lane" data-tip="<strong>Inbound: F2 &rarr; W1 (Mode 1 Road)</strong><br>P1: 0.70 u | P2: 0.60 u (Total: 1.30 u)<br>Freight: &dollar;0.60/u<br>Total Freight: &dollar;0.78k" x1="270" y1="250" x2="470" y2="85" stroke="#38bdf8" stroke-width="2.8" opacity="0.85" />
+              <line class="net-lane" data-tip="<strong>Inbound: F2 &rarr; W4 (Mode 1 Road)</strong><br>P1: 1.30 u | P2: 2.40 u (Total: 3.70 u)<br>Freight: &dollar;0.50/u<br>Total Freight: &dollar;1.85k" x1="270" y1="250" x2="470" y2="330" stroke="#f59e0b" stroke-width="5" opacity="0.85" />
+              <line class="net-lane" data-tip="<strong>Inbound: F3 &rarr; W5 (Mode 1 Road)</strong><br>Product 1: 0.85 u<br>Freight: &dollar;0.60/u<br>Total Freight: &dollar;0.51k" x1="270" y1="385" x2="470" y2="415" stroke="#38bdf8" stroke-width="2.5" opacity="0.85" />
+
+              <line class="net-lane" data-tip="<strong>Outbound: W1 &rarr; M1</strong><br>Product 1: 0.60 u | Freight: &dollar;0.10/u" x1="530" y1="85" x2="770" y2="55" stroke="#38bdf8" stroke-width="2.0" opacity="0.8" />
+              <line class="net-lane" data-tip="<strong>Outbound: W1 &rarr; M6</strong><br>P1: 0.10 u | P2: 0.60 u | Freight: &dollar;0.10/u" x1="530" y1="85" x2="770" y2="310" stroke="#f59e0b" stroke-width="2.2" opacity="0.8" />
+              <line class="net-lane" data-tip="<strong>Outbound: W2 &rarr; M1</strong><br>P1: 0.15 u | P2: 1.00 u | Freight: &dollar;0.12 - &dollar;0.15/u" x1="530" y1="165" x2="770" y2="55" stroke="#f59e0b" stroke-width="2.8" opacity="0.8" />
+              <line class="net-lane" data-tip="<strong>Outbound: W2 &rarr; M3</strong><br>P1: 0.85 u | P2: 1.45 u (Total: 2.30 u)<br>Freight: &dollar;0.10/u" x1="530" y1="165" x2="770" y2="155" stroke="#f59e0b" stroke-width="4.5" opacity="0.8" />
+              <line class="net-lane" data-tip="<strong>Outbound: W2 &rarr; M4</strong><br>Product 2: 0.25 u | Freight: &dollar;0.17/u" x1="530" y1="165" x2="770" y2="205" stroke="#f59e0b" stroke-width="1.8" opacity="0.8" />
+              <line class="net-lane" data-tip="<strong>Outbound: W4 &rarr; M4</strong><br>P1: 0.75 u | P2: 0.55 u | Freight: &dollar;0.14/u" x1="530" y1="330" x2="770" y2="205" stroke="#38bdf8" stroke-width="3.2" opacity="0.8" />
+              <line class="net-lane" data-tip="<strong>Outbound: W4 &rarr; M5</strong><br>P1: 0.55 u | P2: 0.95 u | Freight: &dollar;0.13/u" x1="530" y1="330" x2="770" y2="260" stroke="#f59e0b" stroke-width="3.5" opacity="0.8" />
+              <line class="net-lane" data-tip="<strong>Outbound: W4 &rarr; M9</strong><br>Product 2: 0.90 u | Freight: &dollar;0.14/u" x1="530" y1="330" x2="770" y2="470" stroke="#f59e0b" stroke-width="2.6" opacity="0.8" />
+              <line class="net-lane" data-tip="<strong>Outbound: W5 &rarr; M6</strong><br>Product 1: 0.10 u | Freight: &dollar;0.19/u" x1="530" y1="415" x2="770" y2="310" stroke="#38bdf8" stroke-width="1.2" opacity="0.8" />
+              <line class="net-lane" data-tip="<strong>Outbound: W5 &rarr; M9</strong><br>Product 1: 0.75 u | Freight: &dollar;0.12/u" x1="530" y1="415" x2="770" y2="470" stroke="#38bdf8" stroke-width="2.2" opacity="0.8" />
+
+              <g transform="translate(30, 150)" class="net-node" data-tip="<strong>Raw Material 1</strong><br>Cap: 12.0 u | Used: 6.30 u (52.5%)<br>Cost: &dollar;4.00/u">
+                <rect width="60" height="46" rx="8" fill="#1e293b" stroke="#3b82f6" stroke-width="2" />
+                <text x="30" y="22" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">RM 1</text>
+                <text x="30" y="36" fill="#93c5fd" font-size="9" text-anchor="middle">12.0 cap</text>
+              </g>
+              <g transform="translate(30, 290)" class="net-node" data-tip="<strong>Raw Material 2</strong><br>Cap: 10.5 u | Used: 8.70 u (82.9%)<br>Cost: &dollar;3.00/u">
+                <rect width="60" height="46" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="2" />
+                <text x="30" y="22" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">RM 2</text>
+                <text x="30" y="36" fill="#fde68a" font-size="9" text-anchor="middle">10.5 cap</text>
+              </g>
+
+              <g transform="translate(210, 90)" class="net-node" data-tip="<strong>Factory 1</strong><br>Output: 5.00 u (2.30 P1, 2.70 P2)<br>Op 1 Cap: 100.0% (Binding)<br>Op 2 Cap: 96.3%">
+                <rect width="60" height="46" rx="8" fill="#0f172a" stroke="#ef4444" stroke-width="2.5" />
+                <text x="30" y="21" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">F1</text>
+                <text x="30" y="35" fill="#fca5a5" font-size="9" text-anchor="middle">5.0 / 5.0</text>
+              </g>
+              <g transform="translate(210, 225)" class="net-node" data-tip="<strong>Factory 2</strong><br>Output: 5.00 u (2.00 P1, 3.00 P2)<br>Op 1 Cap: 100.0% (Binding)<br>Op 2 Cap: 100.0% (Binding)">
+                <rect width="60" height="46" rx="8" fill="#0f172a" stroke="#ef4444" stroke-width="2.5" />
+                <text x="30" y="21" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">F2</text>
+                <text x="30" y="35" fill="#fca5a5" font-size="9" text-anchor="middle">5.0 / 5.0</text>
+              </g>
+              <g transform="translate(210, 360)" class="net-node" data-tip="<strong>Factory 3</strong><br>Output: 5.00 u (2.00 P1, 3.00 P2)<br>Op 1 Cap: 100.0% (Binding)<br>Op 2 Cap: 100.0% (Binding)<br>Lowest Mfg Cost">
+                <rect width="60" height="46" rx="8" fill="#0f172a" stroke="#ef4444" stroke-width="2.5" />
+                <text x="30" y="21" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle">F3</text>
+                <text x="30" y="35" fill="#fca5a5" font-size="9" text-anchor="middle">5.0 / 5.0</text>
+              </g>
+
+              <g transform="translate(470, 62)" class="net-node" data-tip="<strong>Warehouse 1</strong><br>1.30 u flow (0.70 P1, 0.60 P2)">
+                <rect width="60" height="42" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+                <text x="30" y="19" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">W1</text>
+                <text x="30" y="32" fill="#bae6fd" font-size="8" text-anchor="middle">1.30 flow</text>
+              </g>
+              <g transform="translate(470, 142)" class="net-node" data-tip="<strong>Warehouse 2 (Mega-Hub)</strong><br>3.70 u flow (1.00 P1, 2.70 P2)<br>Intermodal Rail inbound from F1">
+                <rect width="60" height="42" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="2.5" />
+                <text x="30" y="19" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">W2</text>
+                <text x="30" y="32" fill="#fde68a" font-size="8" font-weight="bold" text-anchor="middle">3.70 flow</text>
+              </g>
+              <g transform="translate(470, 222)" class="net-node opacity-40" data-tip="<strong>Warehouse 3 (Idle)</strong><br>0.00 u flow<br>Dormant in optimal solution">
+                <rect width="60" height="42" rx="8" fill="#1e293b" stroke="#64748b" stroke-width="1.5" stroke-dasharray="3,2" />
+                <text x="30" y="19" fill="#94a3b8" font-size="10" font-weight="bold" text-anchor="middle">W3</text>
+                <text x="30" y="32" fill="#94a3b8" font-size="8" text-anchor="middle">0.00 idle</text>
+              </g>
+              <g transform="translate(470, 305)" class="net-node" data-tip="<strong>Warehouse 4 (Mega-Hub)</strong><br>3.70 u flow (1.30 P1, 2.40 P2)<br>Truckload road inbound from F2">
+                <rect width="60" height="42" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="2.5" />
+                <text x="30" y="19" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">W4</text>
+                <text x="30" y="32" fill="#fde68a" font-size="8" font-weight="bold" text-anchor="middle">3.70 flow</text>
+              </g>
+              <g transform="translate(470, 390)" class="net-node" data-tip="<strong>Warehouse 5</strong><br>0.85 u flow (0.85 P1)">
+                <rect width="60" height="42" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="2" />
+                <text x="30" y="19" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">W5</text>
+                <text x="30" y="32" fill="#bae6fd" font-size="8" text-anchor="middle">0.85 flow</text>
+              </g>
+
+              <g transform="translate(770, 35)" class="net-node" data-tip="<strong>Market 1</strong><br>Demand: 1.75 | Shipped: 1.75 (100%)<br>Revenue: &dollar;10.38k">
+                <rect width="55" height="35" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1.5" />
+                <text x="27" y="17" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">M1</text>
+                <text x="27" y="28" fill="#86efac" font-size="8" text-anchor="middle">1.75 / 1.75</text>
+              </g>
+              <g transform="translate(770, 80)" class="net-node" data-tip="<strong>Market 2 (Direct)</strong><br>Demand: 1.30 | Shipped: 1.30 (100%)<br>Direct from Factory 1<br>Revenue: &dollar;9.10k">
+                <rect width="55" height="35" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1.5" />
+                <text x="27" y="17" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">M2</text>
+                <text x="27" y="28" fill="#86efac" font-size="8" text-anchor="middle">1.30 (Dir)</text>
+              </g>
+              <g transform="translate(770, 135)" class="net-node" data-tip="<strong>Market 3</strong><br>Demand: 2.30 | Shipped: 2.30 (100%)<br>Revenue: &dollar;12.61k">
+                <rect width="55" height="35" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1.5" />
+                <text x="27" y="17" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">M3</text>
+                <text x="27" y="28" fill="#86efac" font-size="8" text-anchor="middle">2.30 / 2.30</text>
+              </g>
+              <g transform="translate(770, 185)" class="net-node" data-tip="<strong>Market 4 (SHORTAGE)</strong><br>Demand: 2.00 | Shipped: 1.55 (77.5%)<br>Product 2 Shortage: 0.45 u<br>Penalty: -&dollar;45.00k">
+                <rect width="55" height="35" rx="6" fill="#450a0a" stroke="#f43f5e" stroke-width="2" />
+                <text x="27" y="17" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">M4</text>
+                <text x="27" y="28" fill="#fda4af" font-size="8" font-weight="bold" text-anchor="middle">1.55 (0.45&darr;)</text>
+              </g>
+              <g transform="translate(770, 240)" class="net-node" data-tip="<strong>Market 5</strong><br>Demand: 1.50 | Shipped: 1.50 (100%)<br>Revenue: &dollar;9.09k">
+                <rect width="55" height="35" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1.5" />
+                <text x="27" y="17" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">M5</text>
+                <text x="27" y="28" fill="#86efac" font-size="8" text-anchor="middle">1.50 / 1.50</text>
+              </g>
+              <g transform="translate(770, 290)" class="net-node" data-tip="<strong>Market 6</strong><br>Demand: 0.80 | Shipped: 0.80 (100%)<br>Revenue: &dollar;4.42k">
+                <rect width="55" height="35" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1.5" />
+                <text x="27" y="17" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">M6</text>
+                <text x="27" y="28" fill="#86efac" font-size="8" text-anchor="middle">0.80 / 0.80</text>
+              </g>
+              <g transform="translate(770, 345)" class="net-node" data-tip="<strong>Market 7 (Direct)</strong><br>Demand: 2.20 | Shipped: 2.20 (100%)<br>Direct from Factory 3<br>Revenue: &dollar;14.08k">
+                <rect width="55" height="35" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1.5" />
+                <text x="27" y="17" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">M7</text>
+                <text x="27" y="28" fill="#86efac" font-size="8" text-anchor="middle">2.20 (Dir)</text>
+              </g>
+              <g transform="translate(770, 400)" class="net-node" data-tip="<strong>Market 8 (Direct)</strong><br>Demand: 1.95 | Shipped: 1.95 (100%)<br>Direct from Factory 3<br>Revenue: &dollar;10.74k">
+                <rect width="55" height="35" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1.5" />
+                <text x="27" y="17" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">M8</text>
+                <text x="27" y="28" fill="#86efac" font-size="8" text-anchor="middle">1.95 (Dir)</text>
+              </g>
+              <g transform="translate(770, 450)" class="net-node" data-tip="<strong>Market 9</strong><br>Demand: 1.65 | Shipped: 1.65 (100%)<br>Revenue: &dollar;9.93k">
+                <rect width="55" height="35" rx="6" fill="#0f172a" stroke="#10b981" stroke-width="1.5" />
+                <text x="27" y="17" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">M9</text>
+                <text x="27" y="28" fill="#86efac" font-size="8" text-anchor="middle">1.65 / 1.65</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-factories" class="hidden space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Manufacturing Fleet Output & Capacity Duals</h2>
+            <p class="text-xs text-slate-500">Operation 1 (shared throughput) vs Operation 2 (technology ratio)</p>
+          </div>
+          <span class="badge bg-rose-100 text-rose-800 border-rose-300">100% Bound on Op 1</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="metric-card p-4 border-l-4 border-l-blue-600">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-sm font-bold text-slate-900">Factory 1</h3>
+              <span class="badge bg-emerald-100 text-emerald-800 border-emerald-300">5.0 / 5.0 u</span>
+            </div>
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between"><span>Product 1 Output:</span><span class="font-bold text-blue-600">2.30 u</span></div>
+              <div class="flex justify-between"><span>Product 2 Output:</span><span class="font-bold text-amber-600">2.70 u</span></div>
+              <div class="pt-2 border-t border-slate-100">
+                <div class="flex justify-between mb-1"><span>Operation 1 Cap:</span><span class="font-bold text-rose-600">100.0% (Binding)</span></div>
+                <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-rose-500 h-2 rounded-full" style="width: 100%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between mb-1"><span>Operation 2 Cap:</span><span class="font-bold text-slate-700">96.3%</span></div>
+                <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-blue-600 h-2 rounded-full" style="width: 96.3%"></div></div>
+              </div>
+              <div class="pt-2 border-t border-slate-100 text-slate-500 flex justify-between">
+                <span>Unit Mfg Cost:</span><span class="font-semibold">&dollar;0.15 (P1) / &dollar;0.10 (P2)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="metric-card p-4 border-l-4 border-l-amber-500">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-sm font-bold text-slate-900">Factory 2</h3>
+              <span class="badge bg-emerald-100 text-emerald-800 border-emerald-300">5.0 / 5.0 u</span>
+            </div>
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between"><span>Product 1 Output:</span><span class="font-bold text-blue-600">2.00 u</span></div>
+              <div class="flex justify-between"><span>Product 2 Output:</span><span class="font-bold text-amber-600">3.00 u</span></div>
+              <div class="pt-2 border-t border-slate-100">
+                <div class="flex justify-between mb-1"><span>Operation 1 Cap:</span><span class="font-bold text-rose-600">100.0% (Binding)</span></div>
+                <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-rose-500 h-2 rounded-full" style="width: 100%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between mb-1"><span>Operation 2 Cap:</span><span class="font-bold text-rose-600">100.0% (Binding)</span></div>
+                <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-rose-500 h-2 rounded-full" style="width: 100%"></div></div>
+              </div>
+              <div class="pt-2 border-t border-slate-100 text-slate-500 flex justify-between">
+                <span>Unit Mfg Cost:</span><span class="font-semibold">&dollar;0.19 (P1) / &dollar;0.14 (P2)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="metric-card p-4 border-l-4 border-l-emerald-600">
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-sm font-bold text-slate-900">Factory 3 (Lowest Cost)</h3>
+              <span class="badge bg-emerald-100 text-emerald-800 border-emerald-300">5.0 / 5.0 u</span>
+            </div>
+            <div class="space-y-2 text-xs">
+              <div class="flex justify-between"><span>Product 1 Output:</span><span class="font-bold text-blue-600">2.00 u</span></div>
+              <div class="flex justify-between"><span>Product 2 Output:</span><span class="font-bold text-amber-600">3.00 u</span></div>
+              <div class="pt-2 border-t border-slate-100">
+                <div class="flex justify-between mb-1"><span>Operation 1 Cap:</span><span class="font-bold text-rose-600">100.0% (Binding)</span></div>
+                <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-rose-500 h-2 rounded-full" style="width: 100%"></div></div>
+              </div>
+              <div>
+                <div class="flex justify-between mb-1"><span>Operation 2 Cap:</span><span class="font-bold text-rose-600">100.0% (Binding)</span></div>
+                <div class="w-full bg-slate-100 rounded-full h-2"><div class="bg-rose-500 h-2 rounded-full" style="width: 100%"></div></div>
+              </div>
+              <div class="pt-2 border-t border-slate-100 text-slate-500 flex justify-between">
+                <span>Unit Mfg Cost:</span><span class="font-semibold text-emerald-700">&dollar;0.13 (P1) / &dollar;0.09 (P2)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-warehouses" class="hidden space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Warehouse Throughput & Mode Modality</h2>
+            <p class="text-xs text-slate-500">Flow conservation audit: Inflow = Outflow verified across all nodes</p>
+          </div>
+          <span class="badge bg-slate-100 text-slate-700 border-slate-300">4 Active / 1 Dormant Hub</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-5 gap-3">
+          <div class="metric-card p-3">
+            <span class="badge bg-blue-100 text-blue-800 border-blue-200">Warehouse 1</span>
+            <div class="text-base font-bold text-slate-900 mt-1">1.30 u</div>
+            <div class="text-[11px] text-slate-500 mt-1">Serves M1, M6</div>
+          </div>
+
+          <div class="metric-card p-3 border-amber-300 bg-amber-50/20">
+            <span class="badge bg-amber-100 text-amber-800 border-amber-300">Warehouse 2 (Mega-Hub)</span>
+            <div class="text-base font-bold text-slate-900 mt-1">3.70 u</div>
+            <div class="text-[11px] text-slate-600 mt-1">Rail Mode 2 from F1</div>
+          </div>
+
+          <div class="metric-card p-3 border-dashed border-slate-300 opacity-50">
+            <span class="badge bg-slate-200 text-slate-700 border-slate-300">Warehouse 3 (Idle)</span>
+            <div class="text-base font-bold text-slate-400 mt-1">0.00 u</div>
+            <div class="text-[11px] text-rose-600 font-semibold mt-1">Decommission candidate</div>
+          </div>
+
+          <div class="metric-card p-3 border-amber-300 bg-amber-50/20">
+            <span class="badge bg-amber-100 text-amber-800 border-amber-300">Warehouse 4 (Mega-Hub)</span>
+            <div class="text-base font-bold text-slate-900 mt-1">3.70 u</div>
+            <div class="text-[11px] text-slate-600 mt-1">Road Mode 1 from F2</div>
+          </div>
+
+          <div class="metric-card p-3">
+            <span class="badge bg-blue-100 text-blue-800 border-blue-200">Warehouse 5</span>
+            <div class="text-base font-bold text-slate-900 mt-1">0.85 u</div>
+            <div class="text-[11px] text-slate-500 mt-1">Serves M6, M9</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-markets" class="hidden space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Regional Market P&L & Fulfillment Matrix</h2>
+            <p class="text-xs text-slate-500">Itemized fulfillment, shortages, and sales revenue across all 9 markets</p>
+          </div>
+          <span class="badge bg-emerald-100 text-emerald-800 border-emerald-300">8 of 9 Markets 100% Satisfied</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 border-b border-slate-200 font-semibold">
+                <th class="py-2.5 px-3">Market</th>
+                <th class="py-2.5 px-3 text-center">P1 (Dem / Ship)</th>
+                <th class="py-2.5 px-3 text-center">P2 (Dem / Ship)</th>
+                <th class="py-2.5 px-3 text-center">Total Volume</th>
+                <th class="py-2.5 px-3 text-center">Shortage</th>
+                <th class="py-2.5 px-3 text-center">Fill Rate</th>
+                <th class="py-2.5 px-3 text-right">Gross Revenue</th>
+                <th class="py-2.5 px-3 text-center">Channel</th>
+              </tr>
+            </thead>
+            <tbody id="markets-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="tab-sensitivity" class="hidden space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Dual Sensitivity & Shadow Price Analysis</h2>
+            <p class="text-xs text-slate-500">Marginal impact of relaxing constraints by 1 unit</p>
+          </div>
+          <span class="badge bg-purple-100 text-purple-800 border-purple-300">Gurobi Simplex Duals</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div class="border border-slate-200 rounded-lg overflow-hidden">
+            <div class="bg-slate-100 px-3 py-2 font-bold text-xs text-slate-700">Binding Constraints (Active Bottlenecks)</div>
+            <table class="w-full text-xs text-left">
+              <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                <tr>
+                  <th class="py-2 px-3">Constraint</th>
+                  <th class="py-2 px-3 text-right">Shadow Price (&pi;)</th>
+                  <th class="py-2 px-3">Impact</th>
+                </tr>
+              </thead>
+              <tbody id="binding-constrs-body" class="divide-y divide-slate-100"></tbody>
+            </table>
+          </div>
+
+          <div class="border border-slate-200 rounded-lg overflow-hidden">
+            <div class="bg-slate-100 px-3 py-2 font-bold text-xs text-slate-700">Reduced Costs (Unused Route Barriers)</div>
+            <div class="max-h-[350px] overflow-y-auto">
+              <table class="w-full text-xs text-left">
+                <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 sticky top-0">
+                  <tr>
+                    <th class="py-2 px-3">Variable</th>
+                    <th class="py-2 px-3 text-right">Reduced Cost</th>
+                    <th class="py-2 px-3">Economic Interpretation</th>
+                  </tr>
+                </thead>
+                <tbody id="reduced-costs-body" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-scenarios" class="hidden space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">What-If Optimization Simulator</h2>
+            <p class="text-xs text-slate-500">Live parameter simulation. Adjust sliders to see instant network financial response.</p>
+          </div>
+          <button onclick="resetSliders()" class="px-3 py-1 text-xs font-semibold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Reset</button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div class="bg-white p-3 rounded-lg border border-slate-200">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-bold text-slate-800">Factory Capacity</span>
+              <span id="lbl-cap" class="font-bold text-blue-600">1.00x (15.0u)</span>
+            </div>
+            <input id="slider-cap" type="range" min="0.8" max="1.4" step="0.05" value="1.0" oninput="runLiveSimulation()" class="w-full accent-blue-600 cursor-pointer" />
+            <div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>0.8x</span><span>1.0x</span><span>1.4x</span></div>
+          </div>
+
+          <div class="bg-white p-3 rounded-lg border border-slate-200">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-bold text-slate-800">Freight Multiplier</span>
+              <span id="lbl-freight" class="font-bold text-amber-600">1.00x</span>
+            </div>
+            <input id="slider-freight" type="range" min="0.6" max="2.0" step="0.1" value="1.0" oninput="runLiveSimulation()" class="w-full accent-amber-500 cursor-pointer" />
+            <div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>0.6x</span><span>1.0x</span><span>2.0x</span></div>
+          </div>
+
+          <div class="bg-white p-3 rounded-lg border border-slate-200">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-bold text-slate-800">SLA Penalty (&dollar;/u)</span>
+              <span id="lbl-penalty" class="font-bold text-rose-600">&dollar;100</span>
+            </div>
+            <input id="slider-penalty" type="range" min="0" max="200" step="10" value="100" oninput="runLiveSimulation()" class="w-full accent-rose-600 cursor-pointer" />
+            <div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>&dollar;0</span><span>&dollar;100</span><span>&dollar;200</span></div>
+          </div>
+
+          <div class="bg-white p-3 rounded-lg border border-slate-200">
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-bold text-slate-800">Market Demand Scale</span>
+              <span id="lbl-demand" class="font-bold text-purple-600">1.00x (15.45u)</span>
+            </div>
+            <input id="slider-demand" type="range" min="0.8" max="1.25" step="0.05" value="1.0" oninput="runLiveSimulation()" class="w-full accent-purple-600 cursor-pointer" />
+            <div class="flex justify-between text-[10px] text-slate-400 mt-1"><span>0.8x</span><span>1.0x</span><span>1.25x</span></div>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-white border border-blue-200">
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-center">
+            <div class="p-2 bg-slate-50 rounded">
+              <span class="text-[10px] text-slate-500 uppercase block">Simulated Revenue</span>
+              <span id="sim-rev" class="text-sm font-bold text-slate-900">&dollar;90.04k</span>
+            </div>
+            <div class="p-2 bg-slate-50 rounded">
+              <span class="text-[10px] text-slate-500 uppercase block">Freight Cost</span>
+              <span id="sim-freight" class="text-sm font-bold text-slate-900">&dollar;9.23k</span>
+            </div>
+            <div class="p-2 bg-slate-50 rounded">
+              <span class="text-[10px] text-slate-500 uppercase block">Shortage Units</span>
+              <span id="sim-short" class="text-sm font-bold text-rose-600">0.45 u</span>
+            </div>
+            <div class="p-2 bg-slate-50 rounded">
+              <span class="text-[10px] text-slate-500 uppercase block">Service Level</span>
+              <span id="sim-service" class="text-sm font-bold text-blue-600">97.09%</span>
+            </div>
+            <div class="p-2 bg-emerald-50 rounded">
+              <span class="text-[10px] text-emerald-800 uppercase block">Operating Profit</span>
+              <span id="sim-opprofit" class="text-sm font-bold text-emerald-700">&dollar;27.57k</span>
+            </div>
+            <div class="p-2 bg-blue-50 rounded">
+              <span class="text-[10px] text-blue-800 uppercase block">Net Optimization Obj</span>
+              <span id="sim-netprofit" class="text-sm font-bold text-blue-900">-&dollar;17.43k</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-ledger" class="hidden space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Master Route Flow Ledger</h2>
+            <p class="text-xs text-slate-500">Itemized decision variable ledger for all active shipping links</p>
+          </div>
+          <input id="ledger-search" type="text" placeholder="Search route or node..." oninput="filterLedgerTable()" class="px-3 py-1.5 text-xs rounded-lg border border-slate-300 w-56 focus:outline-none focus:border-blue-500" />
+        </div>
+
+        <div class="overflow-x-auto max-h-[450px] border border-slate-200 rounded-lg">
+          <table class="w-full text-xs text-left border-collapse">
+            <thead class="bg-slate-100 text-slate-700 sticky top-0 shadow-sm font-semibold">
+              <tr>
+                <th class="py-2 px-3">Variable</th>
+                <th class="py-2 px-3">Type</th>
+                <th class="py-2 px-3">Product</th>
+                <th class="py-2 px-3">Origin</th>
+                <th class="py-2 px-3">Destination</th>
+                <th class="py-2 px-3 text-right">Volume</th>
+                <th class="py-2 px-3 text-right">Unit Freight</th>
+                <th class="py-2 px-3 text-right">Total Freight</th>
+                <th class="py-2 px-3 text-right">Revenue</th>
+              </tr>
+            </thead>
+            <tbody id="ledger-table-body" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const MARKETS_DATA = [
+      { id: 1, name: "Market 1", p1_dem: 0.75, p1_shp: 0.75, p2_dem: 1.00, p2_shp: 1.00, rev: 10.38, short: 0.0, channel: "W1 & W2 Routed" },
+      { id: 2, name: "Market 2", p1_dem: 1.30, p1_shp: 1.30, p2_dem: 0.00, p2_shp: 0.00, rev: 9.10, short: 0.0, channel: "Direct from Factory 1" },
+      { id: 3, name: "Market 3", p1_dem: 0.85, p1_shp: 0.85, p2_dem: 1.45, p2_shp: 1.45, rev: 12.61, short: 0.0, channel: "W2 Routed" },
+      { id: 4, name: "Market 4", p1_dem: 0.75, p1_shp: 0.75, p2_dem: 1.25, p2_shp: 0.80, rev: 9.70, short: 0.45, channel: "W2 & W4 (0.45 Deficit)" },
+      { id: 5, name: "Market 5", p1_dem: 0.55, p1_shp: 0.55, p2_dem: 0.95, p2_shp: 0.95, rev: 9.09, short: 0.0, channel: "W4 Routed" },
+      { id: 6, name: "Market 6", p1_dem: 0.20, p1_shp: 0.20, p2_dem: 0.60, p2_shp: 0.60, rev: 4.42, short: 0.0, channel: "W1 & W5 Routed" },
+      { id: 7, name: "Market 7", p1_dem: 0.70, p1_shp: 0.70, p2_dem: 1.50, p2_shp: 1.50, rev: 14.08, short: 0.0, channel: "Direct from Factory 3" },
+      { id: 8, name: "Market 8", p1_dem: 0.45, p1_shp: 0.45, p2_dem: 1.50, p2_shp: 1.50, rev: 10.74, short: 0.0, channel: "Direct from Factory 3" },
+      { id: 9, name: "Market 9", p1_dem: 0.75, p1_shp: 0.75, p2_dem: 0.90, p2_shp: 0.90, rev: 9.93, short: 0.0, channel: "W4 & W5 Routed" }
+    ];
+
+    const BINDING_CONSTRS = [
+      { name: "production_capacity_1_1", pi: 506.15, text: "Factory 1 Operation 1 throughput limit. Every +1 unit expands net profit by $506.15." },
+      { name: "production_capacity_2_1", pi: 505.30, text: "Factory 2 Operation 1 throughput limit. Every +1 unit expands net profit by $505.30." },
+      { name: "production_capacity_3_1", pi: 505.15, text: "Factory 3 Operation 1 throughput limit. Every +1 unit expands net profit by $505.15." },
+      { name: "production_capacity_2_2", pi: 0.64, text: "Factory 2 Operation 2 capacity binding." },
+      { name: "production_capacity_3_2", pi: 0.64, text: "Factory 3 Operation 2 capacity binding." },
+      { name: "demand_4_2", pi: -100.00, text: "Market 4 Product 2 demand deficit. 1 extra unit demanded incurs $100 penalty." }
+    ];
+
+    const REDUCED_COSTS = [
+      { var: "FM_1_1_1", rc: -99.90, text: "F1 to M1 lane unavailable / suboptimal." },
+      { var: "FW_1_1_1_1", rc: -0.50, text: "F1 to W1 Mode 1 truck freight cost disadvantage." },
+      { var: "FW_2_2_2_1", rc: -0.20, text: "F2 to W2 route higher cost than F2 to W4." },
+      { var: "WM_1_3_3", rc: -99.85, text: "W3 routing inactive due to handling freight surcharges." },
+      { var: "WM_2_1_1", rc: -0.05, text: "Marginal freight delta between W1 and W2." }
+    ];
+
+    const FLOWS_DATA = [
+      { v: "FM_1_1_2", t: "Direct", p: 1, o: "Factory 1", d: "Market 2", vol: 1.30, ufc: 0.60, tfc: 0.78, rev: 9.10 },
+      { v: "FM_1_3_7", t: "Direct", p: 1, o: "Factory 3", d: "Market 7", vol: 0.70, ufc: 0.50, tfc: 0.35, rev: 5.53 },
+      { v: "FM_1_3_8", t: "Direct", p: 1, o: "Factory 3", d: "Market 8", vol: 0.45, ufc: 0.60, tfc: 0.27, rev: 3.24 },
+      { v: "FM_2_3_7", t: "Direct", p: 2, o: "Factory 3", d: "Market 7", vol: 1.50, ufc: 0.50, tfc: 0.75, rev: 8.55 },
+      { v: "FM_2_3_8", t: "Direct", p: 2, o: "Factory 3", d: "Market 8", vol: 1.50, ufc: 0.60, tfc: 0.90, rev: 7.50 },
+      { v: "FW_1_1_2_2", t: "Inbound Rail", p: 1, o: "Factory 1", d: "Warehouse 2", vol: 1.00, ufc: 0.50, tfc: 0.50, rev: 0.00 },
+      { v: "FW_1_2_1_1", t: "Inbound Road", p: 1, o: "Factory 2", d: "Warehouse 1", vol: 0.70, ufc: 0.60, tfc: 0.42, rev: 0.00 },
+      { v: "FW_1_2_4_1", t: "Inbound Road", p: 1, o: "Factory 2", d: "Warehouse 4", vol: 1.30, ufc: 0.50, tfc: 0.65, rev: 0.00 },
+      { v: "FW_1_3_5_1", t: "Inbound Road", p: 1, o: "Factory 3", d: "Warehouse 5", vol: 0.85, ufc: 0.60, tfc: 0.51, rev: 0.00 },
+      { v: "FW_2_1_2_2", t: "Inbound Rail", p: 2, o: "Factory 1", d: "Warehouse 2", vol: 2.70, ufc: 0.50, tfc: 1.35, rev: 0.00 },
+      { v: "FW_2_2_1_1", t: "Inbound Road", p: 2, o: "Factory 2", d: "Warehouse 1", vol: 0.60, ufc: 0.60, tfc: 0.36, rev: 0.00 },
+      { v: "FW_2_2_4_1", t: "Inbound Road", p: 2, o: "Factory 2", d: "Warehouse 4", vol: 2.40, ufc: 0.50, tfc: 1.20, rev: 0.00 },
+      { v: "WM_1_1_1", t: "Outbound", p: 1, o: "Warehouse 1", d: "Market 1", vol: 0.60, ufc: 0.10, tfc: 0.06, rev: 3.90 },
+      { v: "WM_1_1_6", t: "Outbound", p: 1, o: "Warehouse 1", d: "Market 6", vol: 0.10, ufc: 0.10, tfc: 0.01, rev: 0.65 },
+      { v: "WM_1_2_1", t: "Outbound", p: 1, o: "Warehouse 2", d: "Market 1", vol: 0.15, ufc: 0.15, tfc: 0.02, rev: 0.98 },
+      { v: "WM_1_2_3", t: "Outbound", p: 1, o: "Warehouse 2", d: "Market 3", vol: 0.85, ufc: 0.10, tfc: 0.08, rev: 5.36 },
+      { v: "WM_1_4_4", t: "Outbound", p: 1, o: "Warehouse 4", d: "Market 4", vol: 0.75, ufc: 0.14, tfc: 0.11, rev: 5.70 },
+      { v: "WM_1_4_5", t: "Outbound", p: 1, o: "Warehouse 4", d: "Market 5", vol: 0.55, ufc: 0.13, tfc: 0.07, rev: 3.96 },
+      { v: "WM_1_5_6", t: "Outbound", p: 1, o: "Warehouse 5", d: "Market 6", vol: 0.10, ufc: 0.19, tfc: 0.02, rev: 0.65 },
+      { v: "WM_1_5_9", t: "Outbound", p: 1, o: "Warehouse 5", d: "Market 9", vol: 0.75, ufc: 0.12, tfc: 0.09, rev: 5.25 },
+      { v: "WM_2_1_6", t: "Outbound", p: 2, o: "Warehouse 1", d: "Market 6", vol: 0.60, ufc: 0.10, tfc: 0.06, rev: 3.12 },
+      { v: "WM_2_2_1", t: "Outbound", p: 2, o: "Warehouse 2", d: "Market 1", vol: 1.00, ufc: 0.12, tfc: 0.12, rev: 5.50 },
+      { v: "WM_2_2_3", t: "Outbound", p: 2, o: "Warehouse 2", d: "Market 3", vol: 1.45, ufc: 0.10, tfc: 0.15, rev: 7.25 },
+      { v: "WM_2_2_4", t: "Outbound", p: 2, o: "Warehouse 2", d: "Market 4", vol: 0.25, ufc: 0.17, tfc: 0.04, rev: 1.25 },
+      { v: "WM_2_4_4", t: "Outbound", p: 2, o: "Warehouse 4", d: "Market 4", vol: 0.55, ufc: 0.14, tfc: 0.08, rev: 2.75 },
+      { v: "WM_2_4_5", t: "Outbound", p: 2, o: "Warehouse 4", d: "Market 5", vol: 0.95, ufc: 0.13, tfc: 0.12, rev: 5.13 },
+      { v: "WM_2_4_9", t: "Outbound", p: 2, o: "Warehouse 4", d: "Market 9", vol: 0.90, ufc: 0.14, tfc: 0.13, rev: 4.68 },
+      { v: "SHORT_4_2", t: "Deficit", p: 2, o: "Bottleneck", d: "Market 4", vol: 0.45, ufc: 0.00, tfc: 0.00, rev: 0.00 }
+    ];
+
+    let currentFilter = 'all';
+
+    function switchTab(id) {
+      ['overview', 'network', 'factories', 'warehouses', 'markets', 'sensitivity', 'scenarios', 'ledger'].forEach(t => {
+        document.getElementById('tab-' + t)?.classList.add('hidden');
+        document.getElementById('tab-btn-' + t)?.classList.remove('active');
+      });
+      document.getElementById('tab-' + id)?.classList.remove('hidden');
+      document.getElementById('tab-btn-' + id)?.classList.add('active');
+    }
+
+    function setProductFilter(p) {
+      currentFilter = p;
+      ['all', '1', '2'].forEach(key => {
+        const btn = document.getElementById('btn-filt-' + key);
+        if (btn) {
+          btn.className = (key === p)
+            ? 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white shadow-sm transition'
+            : 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:text-white transition';
+        }
+      });
+      renderMarketsTable();
+      renderLedgerTable();
+    }
+
+    function renderMarketsTable() {
+      const tbody = document.getElementById('markets-table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      MARKETS_DATA.forEach(m => {
+        const totDem = m.p1_dem + m.p2_dem;
+        const totShp = m.p1_shp + m.p2_shp;
+        const fill = (totShp / totDem) * 100;
+        const isShort = m.short > 0;
+        const tr = document.createElement('tr');
+        tr.className = isShort ? 'bg-rose-50/60 font-semibold' : 'hover:bg-slate-50';
+        tr.innerHTML = `
+          <td class="py-2 px-3 font-bold">${m.name}</td>
+          <td class="py-2 px-3 text-center">${m.p1_dem.toFixed(2)} / <span class="text-blue-600">${m.p1_shp.toFixed(2)}</span></td>
+          <td class="py-2 px-3 text-center">${m.p2_dem.toFixed(2)} / <span class="text-amber-600">${m.p2_shp.toFixed(2)}</span></td>
+          <td class="py-2 px-3 text-center font-bold">${totDem.toFixed(2)}</td>
+          <td class="py-2 px-3 text-center ${isShort ? 'text-rose-600' : 'text-slate-400'}">${isShort ? m.short.toFixed(2) : '-'}</td>
+          <td class="py-2 px-3 text-center"><span class="badge ${fill >= 100 ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300'}">${fill.toFixed(1)}%</span></td>
+          <td class="py-2 px-3 text-right font-bold">&dollar;${m.rev.toFixed(2)}k</td>
+          <td class="py-2 px-3 text-center text-slate-600">${m.channel}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderSensitivity() {
+      const bBody = document.getElementById('binding-constrs-body');
+      if (bBody) {
+        bBody.innerHTML = '';
+        BINDING_CONSTRS.forEach(c => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50';
+          tr.innerHTML = `
+            <td class="py-2 px-3 font-semibold text-slate-800">${c.name}</td>
+            <td class="py-2 px-3 text-right font-bold ${c.pi > 0 ? 'text-emerald-600' : 'text-rose-600'}">&dollar;${c.pi.toFixed(2)}</td>
+            <td class="py-2 px-3 text-slate-600 text-[11px]">${c.text}</td>
+          `;
+          bBody.appendChild(tr);
+        });
+      }
+
+      const rcBody = document.getElementById('reduced-costs-body');
+      if (rcBody) {
+        rcBody.innerHTML = '';
+        REDUCED_COSTS.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50';
+          tr.innerHTML = `
+            <td class="py-2 px-3 font-mono font-medium">${r.var}</td>
+            <td class="py-2 px-3 text-right font-bold text-amber-700">&dollar;${r.rc.toFixed(2)}</td>
+            <td class="py-2 px-3 text-slate-600 text-[11px]">${r.text}</td>
+          `;
+          rcBody.appendChild(tr);
+        });
+      }
+    }
+
+    function renderLedgerTable(query = '') {
+      const tbody = document.getElementById('ledger-table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+      const q = query.toLowerCase();
+      FLOWS_DATA.forEach(r => {
+        if (currentFilter !== 'all' && r.p.toString() !== currentFilter) return;
+        if (q && !(r.v + r.o + r.d + r.t).toLowerCase().includes(q)) return;
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50';
+        tr.innerHTML = `
+          <td class="py-2 px-3 font-mono font-semibold">${r.v}</td>
+          <td class="py-2 px-3"><span class="badge ${r.t === 'Deficit' ? 'bg-rose-100 text-rose-700 border-rose-300' : 'bg-slate-100 text-slate-700 border-slate-200'}">${r.t}</span></td>
+          <td class="py-2 px-3 font-bold ${r.p === 1 ? 'text-blue-600' : 'text-amber-600'}">P${r.p}</td>
+          <td class="py-2 px-3">${r.o}</td>
+          <td class="py-2 px-3 font-semibold">${r.d}</td>
+          <td class="py-2 px-3 text-right font-bold">${r.vol.toFixed(2)}</td>
+          <td class="py-2 px-3 text-right text-slate-600">${r.ufc > 0 ? '&dollar;' + r.ufc.toFixed(2) : '-'}</td>
+          <td class="py-2 px-3 text-right font-semibold">${r.tfc > 0 ? '&dollar;' + r.tfc.toFixed(2) + 'k' : '-'}</td>
+          <td class="py-2 px-3 text-right font-bold">${r.rev > 0 ? '&dollar;' + r.rev.toFixed(2) + 'k' : '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterLedgerTable() {
+      const q = document.getElementById('ledger-search')?.value || '';
+      renderLedgerTable(q);
+    }
+
+    function runLiveSimulation() {
+      const cap = parseFloat(document.getElementById('slider-cap')?.value || 1.0);
+      const freight = parseFloat(document.getElementById('slider-freight')?.value || 1.0);
+      const penalty = parseFloat(document.getElementById('slider-penalty')?.value || 100);
+      const dem = parseFloat(document.getElementById('slider-demand')?.value || 1.0);
+
+      document.getElementById('lbl-cap').innerText = `${cap.toFixed(2)}x (${(15.0 * cap).toFixed(1)}u)`;
+      document.getElementById('lbl-freight').innerText = `${freight.toFixed(2)}x`;
+      document.getElementById('lbl-penalty').innerText = `&dollar;${penalty.toFixed(0)}`;
+      document.getElementById('lbl-demand').innerText = `${dem.toFixed(2)}x (${(15.45 * dem).toFixed(2)}u)`;
+
+      const totCap = 15.0 * cap;
+      const totDem = 15.45 * dem;
+      const shortage = Math.max(0.0, totDem - totCap);
+      const delivered = Math.min(totDem, totCap);
+      const service = (delivered / totDem) * 100;
+
+      const rev = delivered * (90.04 / 15.0);
+      const rm = delivered * (51.30 / 15.0);
+      const prod = delivered * (1.945 / 15.0);
+      const frt = delivered * (9.227 / 15.0) * freight;
+      const pen = shortage * penalty;
+      const opProf = rev - rm - prod - frt;
+      const netProf = opProf - pen;
+
+      document.getElementById('sim-rev').innerText = `&dollar;${rev.toFixed(2)}k`;
+      document.getElementById('sim-freight').innerText = `&dollar;${frt.toFixed(2)}k`;
+      document.getElementById('sim-short').innerText = `${shortage.toFixed(2)} u`;
+      document.getElementById('sim-service').innerText = `${service.toFixed(1)}%`;
+      document.getElementById('sim-opprofit').innerText = `&dollar;${opProf.toFixed(2)}k`;
+      document.getElementById('sim-netprofit').innerText = `${netProf >= 0 ? '&dollar;' : '-&dollar;'}${Math.abs(netProf).toFixed(2)}k`;
+    }
+
+    function resetSliders() {
+      document.getElementById('slider-cap').value = 1.0;
+      document.getElementById('slider-freight').value = 1.0;
+      document.getElementById('slider-penalty').value = 100;
+      document.getElementById('slider-demand').value = 1.0;
+      runLiveSimulation();
+    }
+
+    function setupTooltips() {
+      const tip = document.getElementById('tooltip-box');
+      document.querySelectorAll('.net-lane, .net-node').forEach(el => {
+        el.addEventListener('mouseenter', (e) => {
+          const c = el.getAttribute('data-tip');
+          if (c && tip) { tip.innerHTML = c; tip.style.display = 'block'; }
+        });
+        el.addEventListener('mousemove', (e) => {
+          if (tip) { tip.style.left = (e.pageX + 15) + 'px'; tip.style.top = (e.pageY + 15) + 'px'; }
+        });
+        el.addEventListener('mouseleave', () => { if (tip) tip.style.display = 'none'; });
+      });
+    }
+
+    function exportCSV() {
+      let csv = "Variable,Type,Product,Origin,Destination,Volume,UnitFreightCost,TotalFreightCost,Revenue\\n";
+      FLOWS_DATA.forEach(r => {
+        csv += `"${r.v}","${r.t}",${r.p},"${r.o}","${r.d}",${r.vol},${r.ufc},${r.tfc},${r.rev}\\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Supply_Chain_Optimal_Plan_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderMarketsTable();
+      renderSensitivity();
+      renderLedgerTable();
+      setupTooltips();
+    });
+  </script>
+</body>
+</html>
+

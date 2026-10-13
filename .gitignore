@@ -13,14 +13,11 @@ gurobi.lic
 *.env
 *.key
 
-# Generated map outputs
-map_plot.svg
-map_visualization.html
-supply_chain_map.pdf
-supply_chain_map.png
+# Temporary test tiles
 test_esri_styles.png
 test_tiles.png
 
 # IDE & Editor files
 .vscode/
 .idea/
+
