@@ -13,9 +13,10 @@ gurobi.lic
 *.env
 *.key
 
-# Temporary test tiles
+# Temporary test tiles & utilities
 test_esri_styles.png
 test_tiles.png
+gh.exe
 
 # IDE & Editor files
 .vscode/

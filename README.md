@@ -12,21 +12,17 @@ An end-to-end geospatial analytics and supply chain optimization project mapping
 
 ---
 
-## 🌐 Interactive Web Map (GitHub Pages Ready)
+## 🌐 Live Interactive Web Map
 
-An interactive, zero-dependency Leaflet web map is included in [`index.html`](index.html) (also accessible via [`map_visualization.html`](map_visualization.html)).
+🔗 **[Explore the Interactive Web Map Live](https://devashishajaywork-stack.github.io/supply-chain-optimization-map/)**
+
+An interactive, zero-dependency Leaflet web map is served live on GitHub Pages from [`index.html`](index.html) (also accessible via [`map_visualization.html`](map_visualization.html)).
 
 ### Key Features:
 * **Interactive Base Layers**: Toggle between Esri Street Map, OpenStreetMap Standard, Esri Light Gray Canvas, Topographic, and Satellite Imagery.
 * **Dynamic Demand Filtering**: Isolate specific customer tiers (1.0, 2.0, 2.5, 3.0, 5.0) with real-time counters.
 * **Location ID Lookup**: Jump directly to any location (`ID 1 – 20,999`) with coordinate tooltips.
 * **Regional Jump Shortcuts**: Instant zoom presets for Eastern UP, Varanasi, Prayagraj, Jaunpur, Mirzapur, Gorakhpur, and national outliers (Bangalore, Surat, Raipur).
-
-> **To enable public live web viewing on GitHub**:
-> 1. Go to repository **Settings** &rarr; **Pages**.
-> 2. Under **Build and deployment**, set source to **Deploy from a branch**.
-> 3. Select branch `main` and folder `/ (root)`, then click **Save**.
-> 4. Your interactive map will be live at `https://<username>.github.io/<repo>/`!
 
 ---
 
@@ -82,3 +78,4 @@ Outputs `supply_chain_map.png` (300 DPI) and `supply_chain_map.pdf`.
 
 ### 3. Launch Interactive Map in Browser
 Open `index.html` or `map_visualization.html` directly in any web browser (Google Chrome, Firefox, Edge, Safari).
+
