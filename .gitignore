@@ -1,0 +1,26 @@
+# Python & Jupyter
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+*.venv
+venv/
+ENV/
+
+# Credentials & Licenses
+gurobi.lic
+*.lic
+*.env
+*.key
+
+# Generated map outputs
+map_plot.svg
+map_visualization.html
+supply_chain_map.pdf
+supply_chain_map.png
+test_esri_styles.png
+test_tiles.png
+
+# IDE & Editor files
+.vscode/
+.idea/
