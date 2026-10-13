@@ -619,9 +619,71 @@ def generate_dashboard_html():
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
           <span>Export Ledger CSV</span>
         </button>
+
+        <a href="map_visualization.html" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition flex items-center space-x-1.5 shadow-sm no-underline">
+          <span>🗺️ 21k Node Demand Map</span>
+        </a>
+
+        <a href="https://github.com/devashishajaywork-stack/supply-chain-optimization-map" target="_blank" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition flex items-center space-x-1.5 no-underline">
+          <span>⭐ GitHub Repo</span>
+        </a>
       </div>
     </div>
   </header>
+
+  <!-- AI FOR ANALYTICS COMPETENCY & EFFICIENCY SHOWCASE -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-5">
+    <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-xl p-5 shadow-lg border border-indigo-700/50">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30">
+              ⚡ AI for Analytics & Decision Intelligence
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+              Prescriptive Optimization (Gurobi LP)
+            </span>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-400/30">
+              Autonomous Sensitivity Engine
+            </span>
+          </div>
+          <h2 class="text-base sm:text-lg font-bold text-white mt-2 tracking-tight">
+            AI-Driven Supply Chain Planning & Prescriptive Optimization Cockpit
+          </h2>
+          <p class="text-xs text-slate-300 mt-1 max-w-4xl leading-relaxed">
+            Demonstrating advanced analytics competencies: Formulating high-dimensional supply chain networks into continuous <strong>Linear Programs (222 variables, 36 constraints)</strong>, solving in sub-second time, interpreting <strong>binding shadow prices (&dollar;506.15/u bottleneck ROI)</strong>, and powering real-time executive what-if decision support.
+          </p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+          <a href="map_visualization.html" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-md transition flex items-center space-x-1.5 no-underline">
+            <span>🗺️ View 21,000 Node GIS Map</span>
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+          </a>
+          <a href="https://github.com/devashishajaywork-stack/supply-chain-optimization-map" target="_blank" class="px-3.5 py-2 text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 shadow-md transition flex items-center space-x-1.5 no-underline">
+            <span>⭐ GitHub Repo</span>
+          </a>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 pt-4 border-t border-indigo-800/60 text-xs">
+        <div class="flex items-center space-x-2">
+          <span class="text-blue-400 font-bold">✓ Prescriptive Optimization</span>
+          <span class="text-slate-400 text-[11px]">Replaces heuristics with provably optimal flow</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-emerald-400 font-bold">✓ Dual Sensitivity Diagnostics</span>
+          <span class="text-slate-400 text-[11px]">Surfaces exact constraint shadow prices</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-purple-400 font-bold">✓ Interactive Scenario Studio</span>
+          <span class="text-slate-400 text-[11px]">Simulates fuel, capacity & demand shocks</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="text-amber-400 font-bold">✓ Geospatial Data Engineering</span>
+          <span class="text-slate-400 text-[11px]">Scales to 20,999 delivery points seamlessly</span>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- STRATEGIC ALERT BANNER -->
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-5">
@@ -1901,17 +1963,22 @@ def main():
     print("Executing Gurobi LP solver and compiling supply chain model data...")
     html_content = generate_dashboard_html()
 
-    workspace_out = "managerial_dashboard.html"
-    with open(workspace_out, "w", encoding="utf-8") as f:
-        f.write(html_content)
-    print(f"Successfully generated local workspace dashboard: {workspace_out}")
-
-    artifact_dir = r"C:\Users\devas\.gemini\antigravity\brain\2f009a60-8a59-4db6-85cb-72ee2e50b58d"
-    if os.path.exists(artifact_dir):
-        artifact_out = os.path.join(artifact_dir, "managerial_dashboard.html")
-        with open(artifact_out, "w", encoding="utf-8") as f:
+    # Generate both managerial_dashboard.html and index.html (entrypoint for GitHub Pages)
+    for out_name in ["managerial_dashboard.html", "index.html"]:
+        with open(out_name, "w", encoding="utf-8") as f:
             f.write(html_content)
-        print(f"Successfully generated artifact dashboard: {artifact_out}")
+        print(f"Successfully generated: {out_name}")
+
+    artifact_dirs = [
+        r"C:\Users\devas\.gemini\antigravity\brain\178d7c31-30dc-4deb-aca0-8e7c0d60279e",
+        r"C:\Users\devas\.gemini\antigravity\brain\2f009a60-8a59-4db6-85cb-72ee2e50b58d"
+    ]
+    for adir in artifact_dirs:
+        if os.path.exists(adir):
+            artifact_out = os.path.join(adir, "managerial_dashboard.html")
+            with open(artifact_out, "w", encoding="utf-8") as f:
+                f.write(html_content)
+            print(f"Successfully generated artifact dashboard: {artifact_out}")
 
 if __name__ == "__main__":
     main()
